@@ -1,25 +1,13 @@
-# Installs a Nginx server with custome HTTP header
+#!/usr/bin/env bash
+# Configure Nginx so that its HTTP response contains
+# a custom header
+# Add HAProxy PPA
+sudo apt-get -y install software-properties-common
+sudo add-apt-repository -y ppa:vbernat/haproxy-2.5
+sudo apt-get -y update
 
-exec {'update':
-  provider => shell,
-  command  => 'sudo apt-get -y update',
-  before   => Exec['install Nginx'],
-}
-
-exec {'install Nginx':
-  provider => shell,
-  command  => 'sudo apt-get -y install nginx',
-  before   => Exec['add_header'],
-}
-
-exec { 'add_header':
-  provider    => shell,
-  environment => ["HOST=${hostname}"],
-  command     => 'sudo sed -i "s/include \/etc\/nginx\/sites-enabled\/\*;/include \/etc\/nginx\/sites-enabled\/\*;\n\tadd_header X-Served-By \"$HOST\";/" /etc/nginx/nginx.conf',
-  before      => Exec['restart Nginx'],
-}
-
-exec { 'restart Nginx':
-  provider => shell,
-  command  => 'sudo service nginx restart',
-}
+# Install HAProxy
+sudo apt-get -y install haproxy
+sudo sed -i -e '$aENABLED=1\n' /etc/default/haproxy
+sudo sed -i -e '$a\listen http-in\n\tbind :80\n\tbalance roundrobin\n\tserver 87235-web-01 34.232.76.78:80 check\n\tserver 87235-web-02 54.210.84.227:80 check\n' /etc/haproxy/haproxy.cfg
+sudo service haproxy restart
